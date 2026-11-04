@@ -88,3 +88,57 @@ describe("turn settlement recovery", () => {
 		assert.throws(() => persistTurn(store, "fixture", 0, [message], false), /The reply could not be saved\./);
 	});
 });
+
+/** An agent whose turn ends on one assistant message with the given
+ * stopReason and content — the streaming shape the length fork guards. */
+function agentEndingWithAssistant(content: unknown[], stopReason: string): Agent {
+	const listeners: Array<(event: never) => unknown> = [];
+	const message = { role: "assistant", content, stopReason, timestamp: 0 };
+	return {
+		state: { messages: [message] },
+		subscribe(listener: (event: never) => unknown) { listeners.push(listener); return () => {}; },
+		async continue() {
+			await Promise.resolve();
+			for (const listener of listeners) {
+				await listener({ type: "message_start", message } as never);
+				await listener({ type: "message_end", message } as never);
+				await listener({ type: "agent_end", messages: [message] } as never);
+			}
+		},
+		abort() {},
+	} as unknown as Agent;
+}
+
+describe("length-stopped thinking-only turns (fork)", () => {
+	it("reports the exhausted output budget instead of settling silently", async () => {
+		const handle = runPiTurn({
+			agent: agentEndingWithAssistant([{ type: "thinking", thinking: "long reasoning…" }], "length"),
+			onFinish() {},
+		});
+		const frames = wireFrames(await new Response(handle.subscribe()).text());
+		assert.equal(frames.at(-1), "[DONE]");
+		const error = frames.find(f => f.includes('"type":"error"'));
+		assert.ok(error, "an error frame is present");
+		assert.match(error, /output budget on reasoning/);
+	});
+
+	it("a length stop WITH text or a tool call stays a normal turn", async () => {
+		for (const content of [
+			[{ type: "thinking", thinking: "…" }, { type: "text", text: "partial answer" }],
+			[{ type: "thinking", thinking: "…" }, { type: "toolCall", id: "call_0", name: "t", arguments: {} }],
+		]) {
+			const handle = runPiTurn({ agent: agentEndingWithAssistant(content, "length"), onFinish() {} });
+			const frames = wireFrames(await new Response(handle.subscribe()).text());
+			assert.equal(frames.some(f => f.includes('"type":"error"')), false, JSON.stringify(content));
+		}
+	});
+
+	it("a thinking-only message that stopped cleanly stays a normal turn", async () => {
+		const handle = runPiTurn({
+			agent: agentEndingWithAssistant([{ type: "thinking", thinking: "…" }], "stop"),
+			onFinish() {},
+		});
+		const frames = wireFrames(await new Response(handle.subscribe()).text());
+		assert.equal(frames.some(f => f.includes('"type":"error"')), false);
+	});
+});

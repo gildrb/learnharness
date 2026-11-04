@@ -120,6 +120,19 @@ export interface PiTurnHandle {
 	abort(): void;
 }
 
+/** True when an assistant message carries a visible answer: non-empty
+ * text or a tool call. A length-stopped message without either ended
+ * inside its reasoning phase (see handle's message_end fork note). */
+function hasVisibleAnswer(content: unknown): boolean {
+	if (!Array.isArray(content)) return false;
+	return content.some((block) => {
+		if (typeof block !== "object" || block === null) return false;
+		const { type, text } = block as { type?: unknown; text?: unknown };
+		if (type === "toolCall") return true;
+		return type === "text" && typeof text === "string" && text.trim().length > 0;
+	});
+}
+
 export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 	const { agent, onError, onFinish, onSettleError, onSettleFailure, usedToolCallIds, updateFlushMs = 100, requestCycle } = spec;
 	const uniquifier = usedToolCallIds ? new ToolCallIdUniquifier(usedToolCallIds) : undefined;
@@ -251,8 +264,23 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 				: uniqued;
 		send(wire);
 		if (event.type === "message_end") {
-			const m = event.message as { role?: string; stopReason?: string } | undefined;
+			const m = event.message as { role?: string; stopReason?: string; content?: unknown[] } | undefined;
 			if (m?.role === "assistant" && m.stopReason === "aborted") sawAbort = true;
+			// FORK (gildrb): a length cap hit while the model is still
+			// reasoning produces a thinking-only assistant message. pi
+			// treats "length" as a normal stop, so the turn would settle
+			// silently with no answer — surface it as an error instead.
+			if (
+				m?.role === "assistant" &&
+				m.stopReason === "length" &&
+				!hasVisibleAnswer(m.content)
+			) {
+				send({
+					type: "error",
+					errorText:
+						"The model spent the whole output budget on reasoning before answering. Raise the model's output pin in Settings → Providers or lower the effort, then resend.",
+				});
+			}
 		}
 		if (event.type === "agent_end") {
 			// Persist/report before the terminal closes every view to new frames.

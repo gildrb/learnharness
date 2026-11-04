@@ -29,6 +29,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 		autoInstallOnAppQuit = false;
 		result: object | null = { updateInfo: { version: "0.3.7" } };
 		failure: Error | null = null;
+		setFeedURL() {}
 		checkForUpdates() {
 			this.checks++;
 			this.emit("checking-for-update");
@@ -100,7 +101,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 			};
 			return mainRequire(id);
 		},
-		process: { argv: [], env: { LH_DEV_URL: "http://127.0.0.1:9000" }, platform: "darwin", on() {} },
+		process: { argv: [], env: { LH_DEV_URL: "http://127.0.0.1:9000", LH_UPDATE_FEED: "https://updates.fixture/feed" }, platform: "darwin", on() {} },
 		__dirname: path.dirname(mainFile), URL,
 		setInterval: (callback: () => void, delay: number) => intervals.push({ callback, delay }),
 		setTimeout() {},
@@ -295,5 +296,16 @@ describe("startup, timer, trusted IPC and menu wiring", () => {
 		const f = fixture(); f.setSettings({ general: { autoUpdate: false } }); await f.run("main()");
 		f.windows[0]!.webContents.fails = true; f.windows[0]!.webContents.loading = false;
 		f.menuCheck(); assert.equal(f.updater.checks, 1);
+	});
+});
+
+describe("fork default: no update feed, no updater (fork)", () => {
+	it("packaged builds without LH_UPDATE_FEED keep the updater disabled", () => {
+		const f = fixture();
+		f.run("delete process.env.LH_UPDATE_FEED");
+		f.run("setupAutoUpdater()");
+		assert.equal(f.state().status, "disabled");
+		f.run("checkForUpdates({ manual: true })");
+		assert.equal(f.updater.checks, 0, "manual check never reaches electron-updater");
 	});
 });
