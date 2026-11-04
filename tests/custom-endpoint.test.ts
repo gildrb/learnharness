@@ -274,8 +274,11 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 		});
 		const [thinker, plain] = provider.getModels();
 		assert.equal(thinker!.reasoning, true);
-		// No thinkingLevelMap → pi-ai's default set, same as any reasoning model.
+		// The map keeps the standard set while pinning each level's wire value.
 		assert.deepEqual(getSupportedThinkingLevels(thinker!), ["off", "minimal", "low", "medium", "high"]);
+		const compat = thinker!.compat;
+		assert.ok(compat !== undefined && "supportsDeveloperRole" in compat, "openai-completions compat carries the role flag");
+		assert.equal(compat.supportsDeveloperRole, false);
 		assert.equal(plain!.reasoning, false);
 		assert.deepEqual(getSupportedThinkingLevels(plain!), ["off"]);
 	});

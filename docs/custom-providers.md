@@ -28,7 +28,7 @@ Edit each model's pins offline:
 
 Positive integer token pins are accepted, including small output limits; blank removes a pin. The editor labels reported, fallback, and pinned values. **These are request/compaction budgets, not commands to resize the backend's context.** Configure the server separately and match its active limits. Reconnecting prunes pins only to the resulting model IDs.
 
-Reasoning support declares a capability; it does not enable execution. The normal Pi effort picker remains available, but **Off may not disable a backend's default thinking**. There is no model-name inference, Ollama preset, thinking-map/compatibility editor, or nonstandard-header editor.
+Reasoning support declares a capability; it does not enable execution. The normal Pi effort picker remains available. This fork maps the picker onto request-level `reasoning_effort` (`off`→`none`, `high`→`xhigh`) and never sends the `developer` role, so **Off disables thinking** on backends that honor `reasoning_effort: none` (vLLM/EXL3-style Qwen servers) and strict role validation no longer 400s. There is no model-name inference, Ollama preset, thinking-map/compatibility editor, or nonstandard-header editor.
 
 ## Images
 

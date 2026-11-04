@@ -70,7 +70,7 @@ test("original saved thinking preference recovers after capability expansion and
 	const engine = piEngineForSpec({ provider: "custom", id: "m", thinkingLevel: "high" });
 	assert.equal(engine.level, "off");
 	await run(engine); configure("http://first/v1", true); await run(engine); configure(); await run(engine);
-	assert.deepEqual(requests.map((r) => r.body.reasoning_effort), [undefined, "high", undefined]);
+	assert.deepEqual(requests.map((r) => r.body.reasoning_effort), [undefined, "xhigh", undefined]);
 });
 test("unset preference reselects the existing default against current reasoning metadata", async () => {
 	const engine = piEngineForSpec({ provider: "custom", id: "m" });

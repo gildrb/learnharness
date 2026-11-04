@@ -76,9 +76,15 @@ function toPiModel(
 		baseUrl,
 		// Pin wins; else detected from the endpoint's metadata (see
 		// detectReasoning). true makes pi-ai offer the standard levels and send
-		// reasoning_effort on the wire; no thinkingLevelMap → the default
-		// off/minimal/low/medium/high set.
+		// reasoning_effort on the wire.
 		reasoning: pin?.reasoning ?? Boolean(model.reasoning),
+		// Strict OpenAI-compatible servers (self-hosted vLLM/EXL3 stacks) accept
+		// only the classic four roles; the auto-detected "developer" role 400s.
+		compat: { supportsDeveloperRole: false },
+		// Map the picker's levels onto request-level reasoning_effort values,
+		// including off → "none": without it "off" sends nothing and a backend
+		// that thinks by default (Qwen enable_thinking) keeps thinking.
+		thinkingLevelMap: { off: "none", minimal: "low", low: "low", medium: "medium", high: "xhigh" },
 		input: model.image ? ["text", "image"] : ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: pin?.context ?? model.context ?? CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW,
@@ -221,7 +227,7 @@ function firstPositive(row: Record<string, unknown>, keys: readonly string[]): n
 }
 
 // Field names seen in the wild for each limit (first present wins).
-const CONTEXT_KEYS = ["max_input_tokens", "context_length", "context_window", "max_context", "n_ctx", "max_seq_len", "max_position_embeddings"] as const;
+const CONTEXT_KEYS = ["max_input_tokens", "max_model_len", "context_length", "context_window", "max_context", "n_ctx", "max_seq_len", "max_position_embeddings"] as const;
 const MAX_TOKEN_KEYS = ["max_output_tokens"] as const;
 
 /** Pull models from a list response (objects with `id` or bare strings), each
