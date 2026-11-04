@@ -510,6 +510,14 @@ function setupAutoUpdater() {
 		reportUpdateStatus("disabled");
 		return;
 	}
+	// FORK (gildrb): updates come only from rebuilding this fork. Never
+	// contact the upstream feed — an upstream release would clobber the
+	// fork's patches via autoInstallOnAppQuit.
+	if (process.env.LH_UPDATE_FEED === undefined) {
+		log("auto-update: fork build — updater disabled (updates via the fork's own builds)");
+		reportUpdateStatus("disabled");
+		return;
+	}
 	try {
 		autoUpdater = require("electron-updater").autoUpdater;
 	} catch (err) {
