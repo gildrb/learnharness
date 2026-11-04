@@ -264,7 +264,7 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 		assert.equal(liar!.reasoning, false, "a server that advertises reasoning but rejects it can be pinned off");
 		assert.deepEqual(getSupportedThinkingLevels(liar!), ["off"]);
 		assert.equal(silent!.reasoning, true, "LM Studio publishes nothing; the user says otherwise");
-		assert.deepEqual(getSupportedThinkingLevels(silent!), ["off", "minimal", "low", "medium", "high"]);
+		assert.deepEqual(getSupportedThinkingLevels(silent!), ["off", "low", "medium", "xhigh"], "the fork's native ladder, not the generic default set");
 	});
 
 	it("gives a reasoning-capable model the standard thinking levels (others stay \"off\")", () => {
@@ -274,8 +274,9 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 		});
 		const [thinker, plain] = provider.getModels();
 		assert.equal(thinker!.reasoning, true);
-		// The map keeps the standard set while pinning each level's wire value.
-		assert.deepEqual(getSupportedThinkingLevels(thinker!), ["off", "minimal", "low", "medium", "high"]);
+		// The map IS the offered ladder: the model's native levels, 1:1 on the wire.
+		assert.deepEqual(getSupportedThinkingLevels(thinker!), ["off", "low", "medium", "xhigh"]);
+		assert.deepEqual(thinker!.thinkingLevelMap, { off: "none", minimal: null, low: "low", medium: "medium", high: null, xhigh: "xhigh" });
 		const compat = thinker!.compat;
 		assert.ok(compat !== undefined && "supportsDeveloperRole" in compat, "openai-completions compat carries the role flag");
 		assert.equal(compat.supportsDeveloperRole, false);

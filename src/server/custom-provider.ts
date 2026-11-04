@@ -81,10 +81,11 @@ function toPiModel(
 		// Strict OpenAI-compatible servers (self-hosted vLLM/EXL3 stacks) accept
 		// only the classic four roles; the auto-detected "developer" role 400s.
 		compat: { supportsDeveloperRole: false },
-		// Map the picker's levels onto request-level reasoning_effort values,
-		// including off → "none": without it "off" sends nothing and a backend
-		// that thinks by default (Qwen enable_thinking) keeps thinking.
-		thinkingLevelMap: { off: "none", minimal: "low", low: "low", medium: "medium", high: "xhigh" },
+		// Offer the model's native ladder (the picker derives its options from
+		// these keys) mapped 1:1 onto request-level reasoning_effort, including
+		// off → "none": without it "off" sends nothing and a backend that
+		// thinks by default (Qwen enable_thinking) keeps thinking.
+		thinkingLevelMap: { off: "none", minimal: null, low: "low", medium: "medium", high: null, xhigh: "xhigh" },
 		input: model.image ? ["text", "image"] : ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: pin?.context ?? model.context ?? CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW,
