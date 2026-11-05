@@ -23,9 +23,10 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
-import { transformMathDelimiters } from "@/src/core";
+import { THEME_SYNTAX_PAIRS, transformMathDelimiters } from "@/src/core";
 import { streamdownPlugins, streamdownRemend } from "./message";
 import { mdComponents } from "@/components/md-blocks";
+import { useAppearance } from "@/components/settings/appearance";
 import { Shimmer } from "./shimmer";
 
 interface ReasoningContextValue {
@@ -200,20 +201,32 @@ export type ReasoningContentProps = ComponentProps<
 // remark-breaks) — reasoning renders the same contract as message text.
 
 export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => (
-    <CollapsibleContent
-      className={cn(
-        "mt-4 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className
-      )}
-      {...props}
-    >
-      <Streamdown components={mdComponents} plugins={streamdownPlugins} remend={streamdownRemend}>
-        {transformMathDelimiters(children)}
-      </Streamdown>
-    </CollapsibleContent>
-  )
+  ({ className, children, ...props }: ReasoningContentProps) => {
+    // Same theme contract as message.tsx: a named theme's shiki registration
+    // replaces streamdown's stock pair for reasoning's code fences.
+    const { appearance } = useAppearance();
+    const syntaxPair =
+      appearance.theme !== null ? THEME_SYNTAX_PAIRS[appearance.theme] : undefined;
+    return (
+      <CollapsibleContent
+        className={cn(
+          "mt-4 text-sm",
+          "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+          className
+        )}
+        {...props}
+      >
+        <Streamdown
+          shikiTheme={syntaxPair}
+          components={mdComponents}
+          plugins={streamdownPlugins}
+          remend={streamdownRemend}
+        >
+          {transformMathDelimiters(children)}
+        </Streamdown>
+      </CollapsibleContent>
+    );
+  }
 );
 
 Reasoning.displayName = "Reasoning";

@@ -35,6 +35,8 @@ import {
 } from "streamdown";
 import { mdComponents } from "@/components/md-blocks";
 import { repairMathForDisplay, transformMathDelimiters } from "@/src/core";
+import { useAppearance } from "@/components/settings/appearance";
+import { THEME_SYNTAX_PAIRS } from "@/src/core";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: LhViewMessage["role"];
@@ -363,9 +365,13 @@ export const streamdownRemend = { htmlTags: false };
 
 export const MessageResponse = memo(
   ({ className, children, ...props }: MessageResponseProps) => {
-    // Legacy backslash delimiters are converted in a single linear scan;
-    // native dollar math passes through to Streamdown unchanged. Incomplete
-    // legacy spans are left for a later render when their closer arrives.
+    // A named theme (Forge) owns code highlighting too: the theme's shiki
+    // registration replaces streamdown's stock github pair; without one the
+    // prop stays undefined = streamdown default. Pair identity is
+    // module-stable (THEME_SYNTAX_PAIRS), keeping Streamdown's memo intact.
+    const { appearance } = useAppearance();
+    const syntaxPair =
+      appearance.theme !== null ? THEME_SYNTAX_PAIRS[appearance.theme] : undefined;
     const content =
       typeof children === "string"
         ? transformMathDelimiters(children)
@@ -379,6 +385,7 @@ export const MessageResponse = memo(
           "lh-prose size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           className
         )}
+        shikiTheme={syntaxPair}
         components={mdComponents}
         plugins={streamdownPlugins}
         remend={streamdownRemend}
