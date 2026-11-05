@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
+import { code, createCodePlugin } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
@@ -36,7 +36,7 @@ import {
 import { mdComponents } from "@/components/md-blocks";
 import { repairMathForDisplay, transformMathDelimiters } from "@/src/core";
 import { useAppearance } from "@/components/settings/appearance";
-import { THEME_SYNTAX_PAIRS } from "@/src/core";
+import { THEME_SYNTAX } from "@/src/core";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: LhViewMessage["role"];
@@ -357,6 +357,23 @@ export const streamdownPlugins = {
   math: createMathPlugin({ singleDollarTextMath: true }),
 } as unknown as PluginConfig;
 
+/** THE CODE PLUGIN OWNS THE HIGHLIGHT PAIR: Streamdown resolves it as
+ *  plugin.getThemes(), and while a code plugin is present the shikiTheme
+ *  PROP is never consulted (streamdown dist: `getThemes() ?? prop`). So a
+ *  named theme needs its OWN plugin instance carrying its syntax
+ *  registration — one per theme, module-stable identity: a theme flip swaps
+ *  the plugins object, Streamdown's context memo recomputes, and mounted
+ *  code blocks re-highlight with the new pair. */
+export const THEME_PLUGINS: Record<string, PluginConfig> = Object.fromEntries(
+  Object.entries(THEME_SYNTAX).map(([name, syntax]) => [
+    name,
+    {
+      ...streamdownPlugins,
+      code: createCodePlugin({ themes: [syntax, syntax] }),
+    },
+  ]),
+) as unknown as Record<string, PluginConfig>;
+
 // Remend's incomplete-HTML heuristic mistakes `<b` in `$a<b$` for a
 // partial tag and deletes the remaining source before math can tokenize.
 // Preserve that text (unfinished prose HTML may show literally); Streamdown's
@@ -365,13 +382,13 @@ export const streamdownRemend = { htmlTags: false };
 
 export const MessageResponse = memo(
   ({ className, children, ...props }: MessageResponseProps) => {
-    // A named theme (Forge) owns code highlighting too: the theme's shiki
-    // registration replaces streamdown's stock github pair; without one the
-    // prop stays undefined = streamdown default. Pair identity is
-    // module-stable (THEME_SYNTAX_PAIRS), keeping Streamdown's memo intact.
+    // A named theme (Forge) owns code highlighting: its plugin instance
+    // (THEME_PLUGINS) replaces the stock config for this render; no theme
+    // = the stock plugin pair, i.e. streamdown's github default. Context
+    // updates bypass this memo (useAppearance), so a theme flip re-renders.
     const { appearance } = useAppearance();
-    const syntaxPair =
-      appearance.theme !== null ? THEME_SYNTAX_PAIRS[appearance.theme] : undefined;
+    const themedPlugins =
+      appearance.theme !== null ? THEME_PLUGINS[appearance.theme] : undefined;
     const content =
       typeof children === "string"
         ? transformMathDelimiters(children)
@@ -385,9 +402,8 @@ export const MessageResponse = memo(
           "lh-prose size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           className
         )}
-        shikiTheme={syntaxPair}
         components={mdComponents}
-        plugins={streamdownPlugins}
+        plugins={themedPlugins ?? streamdownPlugins}
         remend={streamdownRemend}
         {...props}
       >

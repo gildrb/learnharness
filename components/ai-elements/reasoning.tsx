@@ -23,10 +23,10 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
-import { THEME_SYNTAX_PAIRS, transformMathDelimiters } from "@/src/core";
-import { streamdownPlugins, streamdownRemend } from "./message";
+import { THEME_PLUGINS, streamdownPlugins, streamdownRemend } from "./message";
 import { mdComponents } from "@/components/md-blocks";
 import { useAppearance } from "@/components/settings/appearance";
+import { transformMathDelimiters } from "@/src/core";
 import { Shimmer } from "./shimmer";
 
 interface ReasoningContextValue {
@@ -202,11 +202,11 @@ export type ReasoningContentProps = ComponentProps<
 
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => {
-    // Same theme contract as message.tsx: a named theme's shiki registration
-    // replaces streamdown's stock pair for reasoning's code fences.
+    // Same theme contract as message.tsx: a named theme swaps in its code
+    // plugin instance (THEME_PLUGINS) so fences highlight with its syntax.
     const { appearance } = useAppearance();
-    const syntaxPair =
-      appearance.theme !== null ? THEME_SYNTAX_PAIRS[appearance.theme] : undefined;
+    const themedPlugins =
+      appearance.theme !== null ? THEME_PLUGINS[appearance.theme] : undefined;
     return (
       <CollapsibleContent
         className={cn(
@@ -217,9 +217,8 @@ export const ReasoningContent = memo(
         {...props}
       >
         <Streamdown
-          shikiTheme={syntaxPair}
           components={mdComponents}
-          plugins={streamdownPlugins}
+          plugins={themedPlugins ?? streamdownPlugins}
           remend={streamdownRemend}
         >
           {transformMathDelimiters(children)}

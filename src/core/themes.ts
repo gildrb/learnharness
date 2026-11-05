@@ -88,15 +88,6 @@ export const THEME_SYNTAX: Record<string, SyntaxThemeRegistration> = {
 	forge: forgeSyntax,
 };
 
-/** The [light, dark] pair Streamdown's shikiTheme prop expects, per theme —
- *  module-stable so memoized Streamdown instances keep prop identity. */
-export const THEME_SYNTAX_PAIRS: Record<
-	string,
-	[SyntaxThemeRegistration, SyntaxThemeRegistration]
-> = {
-	forge: [forgeSyntax, forgeSyntax],
-};
-
 /** Display names for the settings row (source of truth for the options). */
 export const THEME_LABELS: Record<string, string> = {
 	forge: "Forge",
