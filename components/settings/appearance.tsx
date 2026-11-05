@@ -20,13 +20,14 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { FACTORY_SETTINGS, type AppearanceSettings } from "@/src/core";
+import { FACTORY_SETTINGS, THEME_VARS, type AppearanceSettings } from "@/src/core";
 
 /** The resolved, fully-concrete appearance view (delta + factory merged). */
 export function resolveAppearance(delta: AppearanceSettings | undefined) {
 	const f = FACTORY_SETTINGS.appearance;
 	return {
 		mode: delta?.mode ?? f.mode,
+		theme: delta?.theme ?? f.theme,
 		background: delta?.background ?? f.background,
 		fontFamily: delta?.fontFamily ?? f.fontFamily,
 		proseFontSize: delta?.proseFontSize ?? f.proseFontSize,
@@ -76,7 +77,13 @@ export function derivedPalette(background: string): Record<string, string> {
  *  exported for tests. */
 export function appearanceVars(a: ReturnType<typeof resolveAppearance>): Record<string, string> {
 	const vars: Record<string, string> = {};
-	if (a.background !== null) Object.assign(vars, derivedPalette(a.background));
+	// A named theme REPLACES the base palette wholesale — the background
+	// knob is inert while one is active (the settings row says so).
+	if (a.theme !== null && a.theme in THEME_VARS) {
+		Object.assign(vars, THEME_VARS[a.theme]);
+	} else if (a.background !== null) {
+		Object.assign(vars, derivedPalette(a.background));
+	}
 	if (a.fontFamily !== null) {
 		vars["--font-prose"] = `"${a.fontFamily}", var(--font-sans3), ui-sans-serif, system-ui, sans-serif`;
 	}

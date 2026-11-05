@@ -31,12 +31,13 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import {
-	EXTRACTION_CHUNK_TOKENS_FLOOR,
-	resolveSettings,
-	type AppearanceSettings,
-	type GraphSettings,
-} from "@/src/core";
+ import {
+ 	EXTRACTION_CHUNK_TOKENS_FLOOR,
+ 	resolveSettings,
+	THEME_LABELS,
+ 	type AppearanceSettings,
+ 	type GraphSettings,
+ } from "@/src/core";
 import { MenuShell } from "@/components/menu-shell";
 import { Hint } from "@/components/ui/hint";
 import { useAppearance } from "./appearance.tsx";
@@ -189,6 +190,19 @@ export function AppearanceSection({
 			<SettingsRow label="Mode" hint="Coming soon" testid="row-mode" dimmed>
 				<ThinSelect value="dark" ariaLabel="mode" onChange={() => {}} testid="select-mode" disabled>
 					<option value="dark">Dark</option>
+				</ThinSelect>
+			</SettingsRow>
+			<SettingsRow label="Theme" hint="Default = the factory palette" testid="row-theme">
+				<ThinSelect
+					value={appearance?.theme ?? ""}
+					ariaLabel="theme"
+					testid="select-theme"
+					onChange={(v) => onSectionChange({ ...appearance, theme: v === "" ? null : v })}
+				>
+					<option value="">Default</option>
+					{Object.entries(THEME_LABELS).map(([id, label]) => (
+						<option key={id} value={id}>{label}</option>
+					))}
 				</ThinSelect>
 			</SettingsRow>
 			<SettingsRow

@@ -37,6 +37,7 @@ import type { ChatSettings } from "./contracts/chat.ts";
 import { isSearchEngineId, type SearchEngineId } from "./search.ts";
 import { isDictationLanguage, type DictationLanguage } from "./dictation.ts";
 import { parseFileAccessSettings, type FileAccessSettings } from "./file-access.ts";
+import { THEME_VARS } from "./themes.ts";
 
 /** The schema version this code understands. Bump ONLY for breaking shape
  *  changes (a field renamed/meaning changed); pure additions never bump. */
@@ -391,6 +392,10 @@ export interface MdRenderingSettings {
 export interface AppearanceSettings {
 	/** "dark" | "light" (default dark). */
 	mode?: "dark" | "light";
+	/** A named built-in theme (default null = factory palette). A theme
+	 *  sets the whole palette, so the background field is inert while a
+	 *  theme is active. Names are validated against THEME_VARS. */
+	theme?: string | null;
 	/** The one user-chosen color; everything else derives per-mode in code.
 	 *  null = the mode's default background. */
 	background?: string | null;
@@ -498,6 +503,7 @@ export interface FactorySettings {
 	dictation: Required<DictationSettings>;
 	appearance: {
 		mode: "dark" | "light";
+		theme: string | null;
 		background: string | null;
 		fontFamily: string | null;
 		proseFontSize: number;
@@ -518,6 +524,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	dictation: { language: "en" },
 	appearance: {
 		mode: "dark",
+		theme: null, // factory palette; a named theme replaces the whole set
 		background: null, // the dark default (#141414) lives in the mode's derivation curve
 		fontFamily: null, // Source Sans 3
 		proseFontSize: 16,
@@ -751,6 +758,9 @@ function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
 	if (raw.mode === "dark" || raw.mode === "light") out.mode = raw.mode;
+	if (raw.theme !== undefined) {
+		out.theme = typeof raw.theme === "string" && raw.theme in THEME_VARS ? raw.theme : null;
+	}
 	if (raw.background !== undefined) out.background = sanitizeHexOrNull(raw.background);
 	if (raw.fontFamily !== undefined) {
 		out.fontFamily = typeof raw.fontFamily === "string" && raw.fontFamily.trim() ? raw.fontFamily : null;

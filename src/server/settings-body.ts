@@ -32,6 +32,7 @@ import { WRITABLE_TOOL_KEYS } from "../core/pending.ts";
 import { isSearchEngineId, SEARCH_ENGINES } from "../core/search.ts";
 import { isDictationLanguage } from "../core/dictation.ts";
 import { parseFileAccessSettings } from "../core/file-access.ts";
+import { THEME_VARS } from "../core/themes.ts";
 
 /** Parsed-or-rejected — `ok: false` carries the 400's error message. */
 export type SettingsBodyResult<T> =
@@ -242,6 +243,12 @@ export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<A
 			return { ok: false, error: "mode must be \"dark\" or \"light\"" };
 		}
 		settings.mode = raw.mode;
+	}
+	if (raw.theme !== undefined) {
+		if (raw.theme !== null && !(typeof raw.theme === "string" && raw.theme in THEME_VARS)) {
+			return { ok: false, error: "theme must be a known theme name or null" };
+		}
+		settings.theme = raw.theme as string | null;
 	}
 	if (raw.background !== undefined) {
 		const parsed = parseHexOrNull(raw.background, "background");
